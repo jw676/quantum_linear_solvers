@@ -5,3 +5,4 @@ src/quantum/qiskit/token.txt
 .theia/
 .ipynb_checkpoints
 .DS_Store
+build/
