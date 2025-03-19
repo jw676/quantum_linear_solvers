@@ -17,14 +17,13 @@ from typing import Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import TensoredOp
-
+from qiskit.quantum_info import Operator
 
 class LinearSystemObservable(ABC):
     """An abstract class for linear system observables in Qiskit."""
 
     @abstractmethod
-    def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
+    def observable(self, num_qubits: int) -> Union[Operator, List[Operator]]:
         """The observable operator.
 
         Args:
@@ -32,7 +31,7 @@ class LinearSystemObservable(ABC):
 
         Returns:
             The observable as a sum of Pauli strings.
-        """
+        """ 
         raise NotImplementedError
 
     @abstractmethod

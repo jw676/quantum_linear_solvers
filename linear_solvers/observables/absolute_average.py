@@ -16,8 +16,7 @@ from typing import Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import I, Z, TensoredOp
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, Operator
 
 from .linear_system_observable import LinearSystemObservable
 
@@ -59,7 +58,7 @@ class AbsoluteAverage(LinearSystemObservable):
             exact = observable.evaluate_classically(init_state)
     """
 
-    def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
+    def observable(self, num_qubits: int) -> Union[Operator, List[Operator]]:
         """The observable operator.
 
         Args:
@@ -68,8 +67,11 @@ class AbsoluteAverage(LinearSystemObservable):
         Returns:
             The observable as a sum of Pauli strings.
         """
-        zero_op = (I + Z) / 2
-        return TensoredOp(num_qubits * [zero_op])
+        zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
+        result_op = zero_op
+        for _ in range(num_qubits - 1):
+            result_op = result_op.tensor(zero_op)
+        return result_op
 
     def observable_circuit(
         self, num_qubits: int

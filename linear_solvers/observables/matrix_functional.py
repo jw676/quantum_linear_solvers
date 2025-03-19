@@ -17,8 +17,8 @@ import numpy as np
 from scipy.sparse import diags
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Statevector
-from qiskit.opflow import I, Z, TensoredOp
+from qiskit.quantum_info import Operator, Statevector
+
 
 from .linear_system_observable import LinearSystemObservable
 
@@ -81,7 +81,7 @@ class MatrixFunctional(LinearSystemObservable):
         self._main_diag = main_diag
         self._off_diag = off_diag
 
-    def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
+    def observable(self, num_qubits: int) -> Union[Operator, List[Operator]]:
         """The observable operators.
 
         Args:
@@ -90,23 +90,39 @@ class MatrixFunctional(LinearSystemObservable):
         Returns:
             The observable as a list of sums of Pauli strings.
         """
-        zero_op = (I + Z) / 2
-        one_op = (I - Z) / 2
+        zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
+        one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
         observables = []
-        # First we measure the norm of x
-        observables.append(I ^ num_qubits)
+
+        norm_op = Operator.from_label("I")
+        for _ in range(num_qubits - 1):
+            norm_op = norm_op.tensor(Operator.from_label("I"))
+        observables.append(norm_op)
+
         for i in range(num_qubits):
             j = num_qubits - i - 1
 
-            # TODO this if can be removed once the bug in Opflow is fixed where
-            # TensoredOp([X, TensoredOp([])]).eval() ends up in infinite recursion
+            # Build the prefix of identity operators
+            prefix_op = Operator.from_label("I")
+            if j > 0:
+                for _ in range(j - 1):
+                    prefix_op = prefix_op.tensor(Operator.from_label("I"))
+
             if i > 0:
-                observables += [
-                    (I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
-                    (I ^ j) ^ one_op ^ TensoredOp(i * [one_op]),
-                ]
+                # Build the suffix of one_op operators
+                suffix_op = one_op
+                for _ in range(i - 1):
+                    suffix_op = suffix_op.tensor(one_op)
+
+                # Zero op case: prefix_op ⊗ zero_op ⊗ suffix_op
+                zero_case = prefix_op.tensor(zero_op).tensor(suffix_op)
+                # One op case: prefix_op ⊗ one_op ⊗ suffix_op
+                one_case = prefix_op.tensor(one_op).tensor(suffix_op)
+
+                observables += [zero_case, one_case]
             else:
-                observables += [(I ^ j) ^ zero_op, (I ^ j) ^ one_op]
+                # No suffix needed, just append prefix ⊗ zero_op and prefix ⊗ one_op
+                observables += [prefix_op.tensor(zero_op), prefix_op.tensor(one_op)]
 
         return observables
 
