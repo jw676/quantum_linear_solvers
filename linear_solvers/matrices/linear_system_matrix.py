@@ -115,7 +115,8 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
+    def power(self, power: int, matrix_power: bool = False,
+        annotated: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
 
         Args:

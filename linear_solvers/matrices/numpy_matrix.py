@@ -193,10 +193,11 @@ class NumPyMatrix(LinearSystemMatrix):
 
         self.compose(self.power(1), inplace=True)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False) -> QuantumCircuit:
         return NumPyMatrix(self.matrix, evolution_time=-1 * self.evolution_time)
 
-    def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
+    def power(self, power: int, matrix_power: bool = False,
+        annotated: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
 
         Args:

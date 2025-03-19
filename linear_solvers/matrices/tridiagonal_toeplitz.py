@@ -409,7 +409,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         qc.control = control
         return qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False) -> QuantumCircuit:
         return TridiagonalToeplitz(
             self.num_state_qubits,
             self.main_diag,
@@ -417,7 +417,8 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             evolution_time=-1 * self.evolution_time,
         )
 
-    def power(self, power: int, matrix_power: bool = False) -> QuantumCircuit:
+    def power(self, power: int, matrix_power: bool = False,
+        annotated: bool = False) -> QuantumCircuit:
         """Build powers of the circuit.
 
         Args:
