@@ -1,0 +1,7 @@
+docs/.$*
+.vscode/
+__pycache__/
+src/quantum/qiskit/token.txt
+.theia/
+.ipynb_checkpoints
+.DS_Store
