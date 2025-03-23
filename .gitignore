@@ -6,3 +6,4 @@ src/quantum/qiskit/token.txt
 .ipynb_checkpoints
 .DS_Store
 build/
+quantum_linear_solvers.egg-info/

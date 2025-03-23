@@ -12,6 +12,9 @@
 
 """Test the quantum linear system solver algorithm."""
 
+# runtime warnings & deprecations
+# signature hints
+
 import unittest
 from scipy.linalg import expm
 import numpy as np
@@ -20,6 +23,7 @@ from ddt import ddt, idata, unpack
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.quantum_info import Operator, partial_trace, Statevector
+from qiskit.transpiler.passes import RemoveResetInZeroState
 
 
 from linear_solvers.hhl import HHL
@@ -62,14 +66,27 @@ class TestMatrices(unittest.TestCase):
         num_qubits = matrix.num_state_qubits
         pow_circ = matrix.power(power).control()
         circ_qubits = pow_circ.num_qubits
+
+        print(f"*** num_qubits: {num_qubits} circ_qubits: {circ_qubits}")
+
         qc = QuantumCircuit(circ_qubits)
         qc.append(matrix.power(power).control(), list(range(circ_qubits)))
         # extract the parts of the circuit matrix corresponding to TridiagonalToeplitz
         zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
         one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
-        proj = Operator(
-            (zero_op ^ pow_circ.num_ancillas) ^ (Operator.from_label("I") ^ num_qubits) ^ one_op
-        ).data
+
+        zero_tensor = zero_op
+        for _ in range(pow_circ.num_ancillas - 1):
+            zero_tensor = zero_tensor.tensor(zero_op)
+
+        # Build repeated tensor product of identity
+        identity_tensor = Operator.from_label("I")
+        for _ in range(num_qubits - 1):
+            identity_tensor = identity_tensor.tensor(Operator.from_label("I"))
+
+        # Combine all parts
+        proj = Operator(zero_tensor.tensor(identity_tensor).tensor(one_op)).data
+
         circ_matrix = Operator(qc).data
         approx_exp = partial_trace(
             np.dot(proj, circ_matrix), [0] + list(range(num_qubits + 1, circ_qubits))
@@ -132,7 +149,6 @@ class TestObservables(unittest.TestCase):
         # Calculate the expectation value
         state_vec = circuit_statevector.expectation_value(observable_op)
 
-
         # Obtain result
         result = observable.post_processing(state_vec, num_qubits)
 
@@ -153,15 +169,16 @@ class TestObservables(unittest.TestCase):
     @unpack
     def test_matrix_functional(self, observable, vector):
         """Test the matrix functional class."""
-        from qiskit.transpiler.passes import RemoveResetInZeroState
 
         tpass = RemoveResetInZeroState()
-
         init_state = vector / np.linalg.norm(vector)
         num_qubits = int(np.log2(len(vector)))
 
+        print(f"num_qubits: {num_qubits}")
+
         # Get observable circuits
         obs_circuits = observable.observable_circuit(num_qubits)
+
         qcs = []
         for obs_circ in obs_circuits:
             qc = QuantumCircuit(num_qubits)
@@ -172,14 +189,15 @@ class TestObservables(unittest.TestCase):
         # Get observables
         observable_ops = observable.observable(num_qubits)
         state_vecs = []
+
         # First is the norm
-        circuit_statevector = Statevector.from_instruction(qcs[0])
-        state_vecs.append(circuit_statevector.expectation_value(observable_ops[0]))
+        state_vecs.append(Statevector.from_instruction(qcs[0]).
+            expectation_value(observable_ops[0]))
         for i in range(1, len(observable_ops), 2):
-            circuit_statevector_i = Statevector.from_instruction(qcs[i])
-            circuit_statevector_i_plus_1 = Statevector.from_instruction(qcs[i + 1])
-            state_vecs.append(circuit_statevector_i.expectation_value(observable_ops[i]))
-            state_vecs.append(circuit_statevector_i_plus_1.expectation_value(observable_ops[i + 1]))
+            state_vecs.append(Statevector.from_instruction(qcs[i]).
+                expectation_value(observable_ops[i]))
+            state_vecs.append(Statevector.from_instruction(qcs[i + 1]).
+                expectation_value(observable_ops[i + 1]))
 
         # Obtain result
         result = observable.post_processing(state_vecs, num_qubits)
@@ -331,5 +349,10 @@ class TestLinearSolver(unittest.TestCase):
         #self.assertIsNone(hhl.quantum_instance)
 
 
+# TODO remove warnings at run time and other deprecations & retest
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(defaultTest="TestMatrices")
+    #unittest.main(defaultTest="TestObservables")
+    #unittest.main(defaultTest="TestReciprocal")
+    #unittest.main(defaultTest="TestLinearSolver")
