@@ -19,9 +19,23 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-from qiskit.quantum_info import Statevector, Operator
-from qiskit.primitives import Estimator, Sampler, BaseEstimator
+from qiskit.quantum_info import Operator, Statevector
+from qiskit.primitives import Estimator
+
+
+# from qiskit.opflow import (
+#     Z,
+#     I,
+#     StateFn,
+#     TensoredOp,
+#     ExpectationBase,
+#     CircuitSampler,
+#     ListOp,
+#     ExpectationFactory,
+#     ComposedOp,
+# )
 from qiskit.providers import Backend
+# from qiskit.utils import QuantumInstance
 
 from .linear_solver import LinearSolver, LinearSolverResult
 from .matrices.numpy_matrix import NumPyMatrix
@@ -89,8 +103,8 @@ class HHL(LinearSolver):
     def __init__(
         self,
         epsilon: float = 1e-2,
-        expectation: Optional[BaseEstimator] = None,
-        quantum_instance: Optional[Union[Backend, Sampler]] = None,
+        expectation: Optional[Estimator] = None,
+        quantum_instance: Optional[Backend] = None,
     ) -> None:
         r"""
         Args:
@@ -113,7 +127,7 @@ class HHL(LinearSolver):
         self._scaling = None  # scaling of the solution
 
         self._sampler = None
-        self.quantum_instance = quantum_instance
+        self._quantum_instance = quantum_instance
 
         self._expectation = expectation
 
@@ -123,17 +137,17 @@ class HHL(LinearSolver):
         self.scaling = 1
 
     @property
-    def quantum_instance(self) -> Optional[Union[Backend, Sampler]]:
+    def quantum_instance(self) -> Optional[Backend]:
         """Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
         """
-        return None if self._sampler is None else self._sampler.quantum_instance
+        return self._quantum_instance
 
     @quantum_instance.setter
     def quantum_instance(
-        self, quantum_instance: Optional[Union[Backend, Sampler]]
+        self, quantum_instance: Optional[Backend]
     ) -> None:
         """Set quantum instance.
 
@@ -141,14 +155,7 @@ class HHL(LinearSolver):
             quantum_instance: The quantum instance used to run this algorithm.
                 If None, a Statevector calculation is done.
         """
-        if quantum_instance is not None:
-            if isinstance(quantum_instance, Sampler):
-                self._sampler = quantum_instance
-            else:
-                # If it's a Backend, create a Sampler with it
-                self._sampler = Sampler(backend=quantum_instance)
-        else:
-            self._sampler = None
+        self._quantum_instance = quantum_instance
 
     @property
     def scaling(self) -> float:
@@ -161,13 +168,13 @@ class HHL(LinearSolver):
         self._scaling = scaling
 
     @property
-    def expectation(self) -> BaseEstimator:
+    def expectation(self) -> Estimator:
         """The expectation value algorithm used to construct the expectation measurement from
         the observable."""
         return self._expectation
 
     @expectation.setter
-    def expectation(self, expectation: BaseEstimator) -> None:
+    def expectation(self, expectation: Estimator) -> None:
         """Set the expectation value algorithm."""
         self._expectation = expectation
 
@@ -202,23 +209,64 @@ class HHL(LinearSolver):
         Returns:
             The value of the euclidean norm of the solution.
         """
-        # Calculate the number of qubits
-        nb = qc.qregs[0].size
-        nl = qc.qregs[1].size
-        na = qc.num_ancillas
-
+        statev = Statevector.from_instruction(qc)
+        num_qubits = len(statev.dims())  # Get the number of qubits directly
+        
         # Create the Operators Zero and One
         zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
         one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
-
-        zero_tensor = zero_op
-        for _ in range((nl + na) - 1):
-            zero_tensor = zero_tensor.tensor(zero_op)
-        observable = one_op.tensor(zero_tensor).tensor(Operator(np.eye(2**nb)))
-        circuit_statevector = Statevector.from_instruction(qc)
-        norm_2 = circuit_statevector.expectation_value(observable)
-
+        
+        # We need to create an identity operator for all qubits
+        id_op = Operator.from_label("I")
+        # Then replace the right positions with our specific operators
+        
+        # For a typical HHL circuit structure, with register layout as:
+        # [output register (nb qubits)][eigenvalue register (nl qubits)][ancilla register (na qubits)]
+        # We want to measure |1⟩⟨1| on the first qubit, and |0⟩⟨0| on all eigenvalue and ancilla qubits
+        
+        # Construct operator manually for all qubits
+        op_list = []
+        for i in range(num_qubits):
+            if i == 0:  # First qubit (usually output qubit) gets one_op
+                op_list.append(one_op)
+            else:  # All other qubits get zero_op
+                op_list.append(zero_op)
+        
+        # Tensor all operators together
+        observable = op_list[0]
+        for op in op_list[1:]:
+            observable = observable.tensor(op)
+        
+        # Ensure dimensions exactly match
+        print(f"Statevector dims: {statev.dims()}")
+        print(f"Observable dims: {observable.input_dims()}")
+        
+        norm_2 = statev.expectation_value(observable)
         return np.real(np.sqrt(norm_2) / self.scaling)
+
+
+        # # Calculate the number of qubits
+        # nb = qc.qregs[0].size
+        # nl = qc.qregs[1].size
+        # na = qc.num_ancillas
+
+        # # Create the Operators Zero and One
+        # zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
+        # one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
+
+        # # Norm observable
+        # zero_ops = [zero_op] * (nl + na)
+        # combined_zero_op = zero_ops[0]
+        # for op in zero_ops[1:]:
+        #     combined_zero_op = combined_zero_op.tensor(op)
+        # observable = one_op.tensor(combined_zero_op).tensor(Operator.from_label("I").power(nb))
+        # statev = Statevector.from_instruction(qc)
+        # #print(f"statev {statev} observable {observable}")
+        # print(f"Total qubits in statevector: {statev.dims}")
+        # print(f"nb: {nb}, nl: {nl}, na: {na}, total in observable: {1 + (nl + na) + nb}")
+        # norm_2 = statev.expectation_value(observable)
+
+        # return np.real(np.sqrt(norm_2) / self.scaling)
 
     def _calculate_observable(
         self,
@@ -256,7 +304,7 @@ class HHL(LinearSolver):
 
         # in the other case use the identity as observable
         else:
-            observable = Operator.from_label("I") ^ nb
+            observable = Operator.from_label("I").power(nb)
 
         # Create the Operators Zero and One
         zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
@@ -268,44 +316,46 @@ class HHL(LinearSolver):
             observable_circuit = [observable_circuit]
             observable = [observable]
 
-        expectations: Union[List[Operator], Operator] = []
+        expectations: Union[List[float], float, complex, List[complex]] = []
         for circ, obs in zip(observable_circuit, observable):
             circuit = QuantumCircuit(solution.num_qubits)
             circuit.append(solution, circuit.qubits)
             circuit.append(circ, range(nb))
 
-            zero_tensor = zero_op
-            for _ in range((nl + na) - 1):
-                zero_tensor = zero_tensor.tensor(zero_op)
-            combined_obs = one_op.tensor(zero_tensor).tensor(obs)
-            circuit_statevector = Statevector.from_instruction(circuit)
-            expectation_value = circuit_statevector.expectation_value(combined_obs)
-            expectations.append(expectation_value)
+            zero_ops = [zero_op] * (nl + na)
+            combined_zero_op = zero_ops[0]
+            for op in zero_ops[1:]:
+                combined_zero_op = combined_zero_op.tensor(op)
 
-        if is_list:
-            # If you need to combine the values (e.g., take the average)
-            if expectations:  # Check if the list is not empty
-                expectations = sum(expectations) / len(expectations)
-            else:
-                expectations = 0
-        else:
-            expectations = expectations[0]
+            # Create the final observable by tensoring the three parts
+            ob = one_op.tensor(combined_zero_op).tensor(obs)
+
+            expectations.append(Statevector.from_instruction(circuit).
+                expectation_value(ob))
 
         # check if an expectation converter is given
         if self._expectation is not None:
-            expectations = self._expectation.run(expectations)
+            expectations = self._expectation.convert(expectations)
         # if otherwise a backend was specified, try to set the best expectation value
         elif self._sampler is not None:
             if is_list:
-                op = expectations.oplist[0]
+                op = expectations[0]
             else:
                 op = expectations
-            self._expectation = Estimator()
-            result = self._expectation.run([self._sampler, op])
-            expectations = result.values[0]
+
+            # For statevector simulation
+            estimator = Estimator()
+            # Run expectation calculation
+            job = estimator.run([circuit], [observable])
+            result = job.result()
+            self._expectation = result.values[0]
+
+        if self._sampler is not None:
+            expectations = self._sampler.convert(expectations)
 
         # evaluate
-        expectation_results = expectations.eval()
+        # Instead of expectations.eval()
+        expectation_results = expectations if is_list else expectations[0]
 
         # apply post_processing
         result = post_processing(expectation_results, nb, self.scaling)

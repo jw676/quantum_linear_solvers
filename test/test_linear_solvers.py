@@ -16,8 +16,6 @@
 # signature hints
 
 import unittest
-from qiskit.circuit.library.standard_gates import p
-from qiskit.quantum_info.operators.utils.commutator import OperatorTypeT
 from scipy.linalg import expm
 import numpy as np
 from ddt import ddt, idata, unpack
@@ -317,6 +315,10 @@ class TestLinearSolver(unittest.TestCase):
 
         rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
+        # Ensure rhs is a 1D array for initialize
+        if isinstance(rhs, np.ndarray) and len(rhs.shape) > 1:
+            rhs = rhs.flatten()
+
         # Initial state circuit
         qc = QuantumCircuit(num_qubits)
         qc.initialize(rhs, list(range(num_qubits)))
@@ -337,22 +339,7 @@ class TestLinearSolver(unittest.TestCase):
 
         np.testing.assert_almost_equal(approx_result, exact_result, decimal=decimal)
 
-    def test_hhl_qi(self):
-        """Test the HHL quantum instance getter and setter."""
-        #hhl = HHL()
-        #self.assertIsNone(hhl.quantum_instance)  # Defaults to None
 
-        # First set a valid quantum instance and check via getter
-        #backend = Aer.get_backend("qasm_simulator")
-        #hhl.quantum_instance = qinst
-        #self.assertEqual(hhl.quantum_instance, qinst)
-
-        # Now set quantum instance back to None and check via getter
-        #hhl.quantum_instance = None
-        #self.assertIsNone(hhl.quantum_instance)
-
-
-# TODO remove warnings at run time and other deprecations & retest
 
 if __name__ == "__main__":
     #unittest.main(defaultTest="TestMatrices")
