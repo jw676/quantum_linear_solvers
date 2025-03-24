@@ -345,4 +345,5 @@ if __name__ == "__main__":
     #unittest.main(defaultTest="TestMatrices")
     #unittest.main(defaultTest="TestObservables")
     #unittest.main(defaultTest="TestReciprocal")
-    unittest.main(defaultTest="TestLinearSolver")
+    #unittest.main(defaultTest="TestLinearSolver")
+    unittest.main()  # do them all

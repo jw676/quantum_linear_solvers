@@ -16,26 +16,13 @@ from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import PhaseEstimation
+from qiskit.circuit.library import phase_estimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.primitives import Estimator
 
-
-# from qiskit.opflow import (
-#     Z,
-#     I,
-#     StateFn,
-#     TensoredOp,
-#     ExpectationBase,
-#     CircuitSampler,
-#     ListOp,
-#     ExpectationFactory,
-#     ComposedOp,
-# )
 from qiskit.providers import Backend
-# from qiskit.utils import QuantumInstance
 
 from .linear_solver import LinearSolver, LinearSolverResult
 from .matrices.numpy_matrix import NumPyMatrix
@@ -216,9 +203,7 @@ class HHL(LinearSolver):
         zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
         one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
         
-        # We need to create an identity operator for all qubits
-        id_op = Operator.from_label("I")
-        # Then replace the right positions with our specific operators
+
         
         # For a typical HHL circuit structure, with register layout as:
         # [output register (nb qubits)][eigenvalue register (nl qubits)][ancilla register (na qubits)]
@@ -237,36 +222,9 @@ class HHL(LinearSolver):
         for op in op_list[1:]:
             observable = observable.tensor(op)
         
-        # Ensure dimensions exactly match
-        print(f"Statevector dims: {statev.dims()}")
-        print(f"Observable dims: {observable.input_dims()}")
-        
         norm_2 = statev.expectation_value(observable)
         return np.real(np.sqrt(norm_2) / self.scaling)
 
-
-        # # Calculate the number of qubits
-        # nb = qc.qregs[0].size
-        # nl = qc.qregs[1].size
-        # na = qc.num_ancillas
-
-        # # Create the Operators Zero and One
-        # zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
-        # one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
-
-        # # Norm observable
-        # zero_ops = [zero_op] * (nl + na)
-        # combined_zero_op = zero_ops[0]
-        # for op in zero_ops[1:]:
-        #     combined_zero_op = combined_zero_op.tensor(op)
-        # observable = one_op.tensor(combined_zero_op).tensor(Operator.from_label("I").power(nb))
-        # statev = Statevector.from_instruction(qc)
-        # #print(f"statev {statev} observable {observable}")
-        # print(f"Total qubits in statevector: {statev.dims}")
-        # print(f"nb: {nb}, nl: {nl}, na: {na}, total in observable: {1 + (nl + na) + nb}")
-        # norm_2 = statev.expectation_value(observable)
-
-        # return np.real(np.sqrt(norm_2) / self.scaling)
 
     def _calculate_observable(
         self,
@@ -520,13 +478,13 @@ class HHL(LinearSolver):
         # State preparation
         qc.append(vector_circuit, qb[:])
         # QPE
-        phase_estimation = PhaseEstimation(nl, matrix_circuit)
+        pe_circuit = phase_estimation(nl, matrix_circuit)
         if na > 0:
             qc.append(
-                phase_estimation, ql[:] + qb[:] + qa[: matrix_circuit.num_ancillas]
+                pe_circuit, ql[:] + qb[:] + qa[: matrix_circuit.num_ancillas]
             )
         else:
-            qc.append(phase_estimation, ql[:] + qb[:])
+            qc.append(pe_circuit, ql[:] + qb[:])
         # Conditioned rotation
         if self._exact_reciprocal:
             qc.append(reciprocal_circuit, ql[::-1] + [qf[0]])
@@ -538,11 +496,11 @@ class HHL(LinearSolver):
         # QPE inverse
         if na > 0:
             qc.append(
-                phase_estimation.inverse(),
+                pe_circuit.inverse(),
                 ql[:] + qb[:] + qa[: matrix_circuit.num_ancillas],
             )
         else:
-            qc.append(phase_estimation.inverse(), ql[:] + qb[:])
+            qc.append(pe_circuit.inverse(), ql[:] + qb[:])
         return qc
 
     def solve(
