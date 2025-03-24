@@ -16,6 +16,8 @@
 # signature hints
 
 import unittest
+from qiskit.circuit.library.standard_gates import p
+from qiskit.quantum_info.operators.utils.commutator import OperatorTypeT
 from scipy.linalg import expm
 import numpy as np
 from ddt import ddt, idata, unpack
@@ -67,25 +69,26 @@ class TestMatrices(unittest.TestCase):
         pow_circ = matrix.power(power).control()
         circ_qubits = pow_circ.num_qubits
 
-        print(f"*** num_qubits: {num_qubits} circ_qubits: {circ_qubits}")
-
         qc = QuantumCircuit(circ_qubits)
         qc.append(matrix.power(power).control(), list(range(circ_qubits)))
+
         # extract the parts of the circuit matrix corresponding to TridiagonalToeplitz
         zero_op = (Operator.from_label("I") + Operator.from_label("Z")) / 2
         one_op = (Operator.from_label("I") - Operator.from_label("Z")) / 2
 
-        zero_tensor = zero_op
-        for _ in range(pow_circ.num_ancillas - 1):
-            zero_tensor = zero_tensor.tensor(zero_op)
+        # Construct projection operator directly with the right dimensions
+        identity_op = Operator.from_label("I")
+        # Create a projection operator of the exact same dimension as the circuit
+        proj_ops = []
+        for i in range(circ_qubits - 1):
+            proj_ops.append(zero_op if i < pow_circ.num_ancillas else identity_op)
+        proj_ops.append(one_op)  # The last position gets the |1><1| projector
 
-        # Build repeated tensor product of identity
-        identity_tensor = Operator.from_label("I")
-        for _ in range(num_qubits - 1):
-            identity_tensor = identity_tensor.tensor(Operator.from_label("I"))
-
-        # Combine all parts
-        proj = Operator(zero_tensor.tensor(identity_tensor).tensor(one_op)).data
+        # Combine all operators with tensor products
+        proj_op = proj_ops[0]
+        for op in proj_ops[1:]:
+            proj_op = proj_op.tensor(op)
+        proj = proj_op.data
 
         circ_matrix = Operator(qc).data
         approx_exp = partial_trace(
@@ -352,7 +355,7 @@ class TestLinearSolver(unittest.TestCase):
 # TODO remove warnings at run time and other deprecations & retest
 
 if __name__ == "__main__":
-    unittest.main(defaultTest="TestMatrices")
+    #unittest.main(defaultTest="TestMatrices")
     #unittest.main(defaultTest="TestObservables")
     #unittest.main(defaultTest="TestReciprocal")
-    #unittest.main(defaultTest="TestLinearSolver")
+    unittest.main(defaultTest="TestLinearSolver")
