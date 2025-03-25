@@ -351,8 +351,8 @@ class HHL(LinearSolver):
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
             # pylint: disable=no-member
-            vector_circuit.isometry(
-                vector / np.linalg.norm(vector), list(range(nb)), None
+            vector_circuit.initialize(
+                vector / np.linalg.norm(vector), list(range(nb))
             )
 
         # If state preparation is probabilistic the number of qubit flags should increase
