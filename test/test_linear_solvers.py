@@ -300,6 +300,40 @@ class TestLinearSolver(unittest.TestCase):
                 [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12],
                 AbsoluteAverage(),
             ],
+            [
+                TridiagonalToeplitz(2, 2, -0.5, trotter_steps=3),
+                [0.5, 0.5, 0.5, 0.5],
+                AbsoluteAverage(),
+                2,
+            ],
+            [
+                NumPyMatrix(np.array([[3, 1], [1, 3]])),
+                [1.0, 1.0],
+                MatrixFunctional(1, 1),
+                2,
+            ],
+            [
+                np.array([
+                    [4, 1, 0, 0],
+                    [1, 4, 1, 0],
+                    [0, 1, 4, 1],
+                    [0, 0, 1, 4]
+                ]),
+                [1.0, 0.0, 0.0, 0.0],
+                AbsoluteAverage(),
+                2,
+            ],
+            [
+                np.array([
+                    [2, -1, 0, 0],
+                    [-1, 2, -1, 0],
+                    [0, -1, 2, -1],
+                    [0, 0, -1, 2]
+                ]),  # Standard discretization of 1D Poisson equation
+                [0.0, 1.0, 0.0, 0.0],
+                AbsoluteAverage(),
+                2,
+            ],
         ]
     )
     @unpack
