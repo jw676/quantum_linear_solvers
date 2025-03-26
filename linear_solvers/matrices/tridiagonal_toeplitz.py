@@ -318,6 +318,14 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         Returns:
             The quantum circuit implementing the matrix consisting of entries in the off diagonals.
         """
+
+        if abs(self.off_diag) < 1e-10:
+            qr = QuantumRegister(self.num_state_qubits)
+            qc = QuantumCircuit(qr, name="off_diags_identity")
+            # Return an identity circuit (no operations)
+            print(f"Warning: Very small off diagonal detected ({self.off_diag}).")
+            return qc
+
         theta *= self.off_diag
 
         qr = QuantumRegister(self.num_state_qubits)
@@ -449,6 +457,10 @@ class TridiagonalToeplitz(LinearSystemMatrix):
                 self._main_diag_circ(self.evolution_time * power).control().to_gate(),
                 [q_control] + qr[:],
             )
+
+            # Skip off-diagonal operations for pure diagonal matrices
+            if abs(self.off_diag) < 1e-10:
+                return qc
 
             # Update trotter steps to compensate the error
             trotter_steps_new = int(np.ceil(np.sqrt(power) * self.trotter_steps))

@@ -406,6 +406,15 @@ class HHL(LinearSolver):
             and matrix_circuit.eigs_bounds() is not None
         ):
             lambda_min, lambda_max = matrix_circuit.eigs_bounds()
+
+            # Add safety check for lambda_min close to or equal to zero
+            if abs(lambda_min) < 1e-10:
+                # Use a small non-zero value instead
+                lambda_min_safe = max(1e-10, lambda_max / 1000.0)
+                print(f"Warning: Very small minimum eigenvalue detected ({lambda_min}). "
+                      f"Using {lambda_min_safe} instead to avoid division by zero.")
+                lambda_min = lambda_min_safe
+
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
             # the most to the solution of the system. -1 to take into account the sign qubit
             delta = self._get_delta(nl - neg_vals, lambda_min, lambda_max)

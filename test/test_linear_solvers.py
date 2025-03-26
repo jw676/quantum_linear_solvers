@@ -324,6 +324,12 @@ class TestLinearSolver(unittest.TestCase):
                 2,
             ],
             [
+                TridiagonalToeplitz(2, 1, 0, trotter_steps=2),  # Diagonal matrix
+                [1.0, 2.0, 3.0, 4.0],
+                MatrixFunctional(0.5, 0.5),
+                2,
+            ],
+            [
                 np.array([
                     [2, -1, 0, 0],
                     [-1, 2, -1, 0],
