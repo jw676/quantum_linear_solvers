@@ -17,7 +17,7 @@ import numpy as np
 from scipy.sparse import diags
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import UGate, MCMTVChain
+from qiskit.circuit.library import MCMTGate, UGate
 
 from .linear_system_matrix import LinearSystemMatrix
 
@@ -353,9 +353,12 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             # Multicontrolled rotation
             if len(q_controls) > 1:
                 ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
+                mcmt_gate = MCMTGate(ugate, len(q_controls), 1)
+                # Set up the synthesis plugin to use V-chain
+                mcmt_gate.synthesis_method = "v-chain"
                 qc.append(
-                    MCMTVChain(ugate, len(q_controls), 1),
-                    q_controls[:] + [qr[i]] + qr_ancilla[: len(q_controls) - 1],
+                    mcmt_gate,
+                    q_controls[:] + [qr[i]],
                 )
             else:
                 qc.cu(-2 * theta, 3 * np.pi / 2, np.pi / 2, 0, q_controls[0], qr[i])
@@ -397,9 +400,13 @@ class TridiagonalToeplitz(LinearSystemMatrix):
                 # Multicontrolled x rotation
                 if len(q_controls) > 1:
                     ugate = UGate(-2 * theta, 3 * np.pi / 2, np.pi / 2)
+                    # Create the MCMTGate
+                    mcmt_gate = MCMTGate(ugate, len(q_controls), 1)
+                    # Set up the synthesis plugin to use V-chain
+                    mcmt_gate.synthesis_method = "v-chain"
                     qc_control.append(
-                        MCMTVChain(ugate, len(q_controls), 1).to_gate(),
-                        q_controls[:] + [qr[i]] + qr_ancilla[: len(q_controls) - 1],
+                        mcmt_gate,
+                        q_controls[:] + [qr[i]],
                     )
                 else:
                     qc_control.cu(
