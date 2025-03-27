@@ -12,9 +12,6 @@
 
 """Test the quantum linear system solver algorithm."""
 
-# runtime warnings & deprecations
-# signature hints
-
 import unittest
 from scipy.linalg import expm
 import numpy as np
@@ -34,17 +31,15 @@ from linear_solvers.observables.matrix_functional import MatrixFunctional
 
 @ddt
 class TestMatrices(unittest.TestCase):
-    """Tests based on the matrices classes.
-
-    This class tests
-        * the constructed circuits
+    """
+    Tests based on the matrices classes.
     """
 
     @idata(
         [
-            [TridiagonalToeplitz(2, 1, -1 / 3)],
-            [TridiagonalToeplitz(3, 2, 1), 1.1, 3],
-            [
+            [TridiagonalToeplitz(2, 1, -1 / 3)],        # matrix test 1
+            [TridiagonalToeplitz(3, 2, 1), 1.1, 3],     #        test 2
+            [                                           #        test 3
                 NumPyMatrix(
                     np.array(
                         [
@@ -121,10 +116,8 @@ class TestMatrices(unittest.TestCase):
 
 @ddt
 class TestObservables(unittest.TestCase):
-    """Tests based on the observables classes.
-
-    This class tests
-        * the constructed circuits
+    """
+    Tests based on the observables classes.
     """
 
     @idata(
@@ -175,8 +168,6 @@ class TestObservables(unittest.TestCase):
         init_state = vector / np.linalg.norm(vector)
         num_qubits = int(np.log2(len(vector)))
 
-        print(f"num_qubits: {num_qubits}")
-
         # Get observable circuits
         obs_circuits = observable.observable_circuit(num_qubits)
 
@@ -211,10 +202,8 @@ class TestObservables(unittest.TestCase):
 
 @ddt
 class TestReciprocal(unittest.TestCase):
-    """Tests based on the reciprocal classes.
-
-    This class tests
-        * the constructed circuits
+    """
+    Tests based on the reciprocal classes.
     """
 
     @idata([[2, 0.1, False], [3, 1 / 9, True]])
@@ -254,10 +243,9 @@ class TestReciprocal(unittest.TestCase):
 
 @ddt
 class TestLinearSolver(unittest.TestCase):
-    """Tests based on the linear solvers classes.
-
-    This class tests
-        * the constructed circuits
+    """
+    Tests based on the linear solvers classes.
+    These are rollup-tests which use some of the classes separatelty tested above.
     """
 
     @idata(
@@ -382,6 +370,7 @@ class TestLinearSolver(unittest.TestCase):
 
 
 if __name__ == "__main__":
+
     # unittest.main(defaultTest="TestMatrices")
     # unittest.main(defaultTest="TestObservables")
     # unittest.main(defaultTest="TestReciprocal")

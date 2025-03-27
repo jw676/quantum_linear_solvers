@@ -69,7 +69,7 @@ class HHL(LinearSolver):
             # Initial state circuit
             num_qubits = matrix.num_state_qubits
             qc = QuantumCircuit(num_qubits)
-            qc.isometry(rhs, list(range(num_qubits)), None)
+            qc.initialize(rhs, list(range(num_qubits)))
 
             hhl = HHL()
             solution = hhl.solve(matrix, qc, observable)

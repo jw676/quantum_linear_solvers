@@ -31,13 +31,6 @@ class NumPyLinearSolver(LinearSolver):
 
     Examples:
 
-        .. jupyter-execute::
-
-            import numpy as np
-            from quantum_linear_solvers.linear_solvers import NumPyLinearSolver
-            from quantum_linear_solvers.linear_solvers.matrices import TridiagonalToeplitz
-            from quantum_linear_solvers.linear_solvers.observables import MatrixFunctional
-
             matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
             right_hand_side = [1.0, -2.1, 3.2, -4.3]
             observable = MatrixFunctional(1, 1 / 2)
