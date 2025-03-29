@@ -31,7 +31,7 @@ class LinearSystemObservable(ABC):
 
         Returns:
             The observable as a sum of Pauli strings.
-        """ 
+        """
         raise NotImplementedError
 
     @abstractmethod

@@ -17,7 +17,7 @@ import numpy as np
 from scipy.sparse import diags
 
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Operator, Statevector, SparsePauliOp
+from qiskit.quantum_info import Operator, Statevector
 
 
 from .linear_system_observable import LinearSystemObservable
@@ -102,7 +102,7 @@ class MatrixFunctional(LinearSystemObservable):
 
             # Create identity prefix for tensor product
             identity_prefix = Operator.from_label("I" * j) if j > 0 else None
-            
+
             if i > 0:
                 # Create tensor product of i one_op operators
                 right_tensor = None
@@ -111,7 +111,7 @@ class MatrixFunctional(LinearSystemObservable):
                         right_tensor = one_op
                     else:
                         right_tensor = right_tensor.tensor(one_op)
-                
+
                 # Combine all parts of the tensor product
                 if j > 0:
                     observables.append(identity_prefix.tensor(zero_op).tensor(right_tensor))
