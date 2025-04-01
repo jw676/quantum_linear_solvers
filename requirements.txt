@@ -3,8 +3,8 @@ importlib_metadata
 mapomatic
 mthree
 pylatexenc
-qiskit>=1.4,<2.0
-qiskit-aer>=0.15,<0.16.1     
+qiskit==1.2.4
+qiskit-aer==0.15.1     
 qiskit-algorithms             
 qiskit-ibm-runtime            
 qiskit-qasm3-import  
