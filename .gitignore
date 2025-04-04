@@ -7,3 +7,4 @@ src/quantum/qiskit/token.txt
 .DS_Store
 build/
 quantum_linear_solvers.egg-info/
+uv.lock
