@@ -16,7 +16,7 @@ from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.circuit.library import phase_estimation
+from qiskit.circuit.library import phase_estimation as pe
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.quantum_info import Operator, Statevector
@@ -487,7 +487,7 @@ class HHL(LinearSolver):
         # State preparation
         qc.append(vector_circuit, qb[:])
         # QPE
-        pe_circuit = phase_estimation(nl, matrix_circuit)
+        pe_circuit = pe.PhaseEstimation(nl, matrix_circuit)
         if na > 0:
             qc.append(
                 pe_circuit, ql[:] + qb[:] + qa[: matrix_circuit.num_ancillas]

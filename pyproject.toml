@@ -4,17 +4,6 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "ddt>=1.7.2",
-    "importlib-metadata>=8.6.1",
-    "mapomatic>=0.13.0",
-    "mthree>=3.0.0",
-    "pylatexenc>=2.10",
-    "qiskit>=1.4,<2.0",
-    "qiskit-aer>=0.17.0",
-    "qiskit-algorithms>=0.3.1",
-    "qiskit-ibm-runtime>=0.37.0",
-]
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
